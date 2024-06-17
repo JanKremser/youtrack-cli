@@ -102,7 +102,7 @@ web_modules/
 
 .env.development.local
 .env.test.local
-.env.production.local
+.env.production.local.env.env.env
 .env.local
 
 # parcel-bundler cache (https://parceljs.org/)
