@@ -46,17 +46,25 @@ async function getIssue(args: CommandArgs) {
 
     if (cli.checkCliArgs(args, cli.CLI_CONFIG.issue?.chileds?.timestop)) {
         let durationInSec = await _timestop();
-        terminal.stdoutLn(`${durationInSec} sec`, terminal.colors.fgGreen);
+        terminal.stdoutLn(
+            `${_formatTimer(durationInSec)}`,
+            terminal.colors.fgGreen
+        );
 
         await _createTimeTrackingItem(issueId, durationInSec);
     }
 }
 
 async function _timestop(): Promise<number> {
-    let strgC = false;
+    let curlX = false;
     let keydownEventFn = (key: Buffer) => {
         if (key.toString() === "\u0003") {
-            strgC = true;
+            // ^C
+            process.exit(0);
+        }
+        if (key.toString() === "\u0018") {
+            // ^X
+            curlX = true;
         }
     };
     terminal.createDataEventListener(keydownEventFn);
@@ -66,15 +74,25 @@ async function _timestop(): Promise<number> {
 
     let timeInSec = 0;
     let dotSymbol = "[ ]";
-    while (!strgC) {
+    while (!curlX) {
         dotSymbol = dotSymbol == "[ ]" ? "[•]" : "[ ]";
 
         timer = new Date().getTime();
-        timeInSec = parseInt(((timer - start) / 1000).toFixed(0));
         terminal.stdout(`${dotSymbol}`, terminal.colors.bgRed);
-        terminal.stdoutLn(` ${timeInSec} sec`, terminal.colors.fgRed);
 
-        await helper.sleep(389);
+        timeInSec = parseInt(((timer - start) / 1000).toFixed(0));
+        terminal.stdout(` ${_formatTimer(timeInSec)}`, terminal.colors.fgRed);
+
+        terminal.stdout(`   `.repeat(5));
+        terminal.stdout(`^X`, terminal.colors.bgWhite);
+        terminal.stdout(` Stop`);
+        terminal.stdout(`   `.repeat(2));
+        terminal.stdout(`^C`, terminal.colors.bgWhite);
+        terminal.stdout(` Cancel`);
+
+        terminal.stdoutLn(``);
+
+        await helper.sleep(500);
 
         terminal.clearLastLine();
     }
@@ -84,14 +102,32 @@ async function _timestop(): Promise<number> {
     return timeInSec;
 }
 
+function _formatTimer(timeInSec: number): string {
+    let showHours = Math.floor(timeInSec / 60 / 60);
+    let sec = timeInSec - showHours * 60 * 60;
+    let showMin = Math.floor(sec / 60);
+    let showSec = sec % 60;
+
+    return `${_formatNumber(showHours)}:${_formatNumber(
+        showMin
+    )}:${_formatNumber(showSec)}`;
+}
+
+function _formatNumber(num: number): string {
+    return `${num <= 9 ? "0" : ""}${num}`;
+}
+
 async function _createTimeTrackingItem(issueId: string, durationInSec: number) {
-    const minDurationInSec = 900;
+    const minDurationInSec = parseInt(
+        process.env.YOUTRACK_MIN_DURATION_IN_SEC
+            ? process.env.YOUTRACK_MIN_DURATION_IN_SEC
+            : "0"
+    );
     if (durationInSec < minDurationInSec) {
         durationInSec = minDurationInSec;
     }
-    const durationInMin = (durationInSec / 60).toFixed(0);
     terminal.stdoutLn(`Duration: `, terminal.colors.fgMagenta);
-    terminal.stdoutLn(`${durationInMin} min`);
+    terminal.stdoutLn(`${_formatTimer(durationInSec)}`);
 
     let description = await terminal.question("\nDescription: ");
 
