@@ -2,6 +2,7 @@ import helper from "./helper";
 import terminal from "./terminal";
 import youtrack, { Issue } from "./youtrack";
 import cli, { CommandArgs } from "./cli";
+import git from "./git";
 
 async function listIssues() {
     let issues = await youtrack.listAllIssues();
@@ -35,11 +36,19 @@ function _printIssue(issue: Issue) {
 }
 
 async function getIssue(args: CommandArgs) {
-    let issueId = args["issue"] as string;
+    let issueId = "";
+    if (cli.checkCliArgs(args, cli.CLI_CONFIG.git)) {
+        issueId = await git.getCurrentBranch();
+    } else {
+        issueId = args["issue"] as string;
+    }
 
     let issue: null | Issue = await youtrack.getIssue(issueId);
     if (issue == null) {
-        terminal.stdoutLn("-> Issue not found", terminal.colors.fgRed);
+        terminal.stdoutLn(
+            `-> Issue not found - id: "${issueId}"`,
+            terminal.colors.fgRed
+        );
         return;
     }
     _printIssue(issue);

@@ -34,6 +34,19 @@ const CLI_CONFIG: Cli = {
             await commands.listIssues();
         },
     },
+    git: {
+        long: "git",
+        short: "g",
+        callback: async (args: CommandArgs) => {
+            await commands.getIssue(args);
+        },
+        chileds: {
+            timestop: {
+                long: "time",
+                short: "t",
+            },
+        },
+    },
     issue: {
         long: "issue",
         valueType: "string",
